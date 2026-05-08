@@ -27,18 +27,22 @@ public class UserProducerServiceImpl implements UserProducerService {
     public void publishUserRegisteredEvent(User user) {
         String key = user.getId();
 
-        retryTemplate.execute(context -> {
-            int attempt = context.getRetryCount() + 1;
-            log.info("Publishing message to topic {}. Attempt {}/{}", topicProperties.getMainTopic(), attempt, topicProperties.getRetryAttempts());
-            kafkaTemplate.send(topicProperties.getMainTopic(), key, user).get(10, TimeUnit.SECONDS);
-            log.info("Successfully published user event for id {}", user.getId());
-            return null;
-        }, context -> {
-            Exception exception = new RuntimeException(context.getLastThrowable());
-            log.error("All retry attempts exhausted. Sending message to DLT {}", topicProperties.getDltTopic(), exception);
-            ConsumerRecord<Object, Object> failedRecord = new ConsumerRecord<>(topicProperties.getMainTopic(), 0, 0L, key, user);
-            deadLetterPublishingRecoverer.accept(failedRecord, exception);
-            throw exception;
-        });
+        try {
+            retryTemplate.execute(context -> {
+                int attempt = context.getRetryCount() + 1;
+                log.info("Publishing message to topic {}. Attempt {}/{}", topicProperties.getMainTopic(), attempt, topicProperties.getRetryAttempts());
+                kafkaTemplate.send(topicProperties.getMainTopic(), key, user).get(10, TimeUnit.SECONDS);
+                log.info("Successfully published user event for id {}", user.getId());
+                return null;
+            }, context -> {
+                Exception exception = new RuntimeException(context.getLastThrowable());
+                log.error("All retry attempts exhausted. Sending message to DLT {}", topicProperties.getDltTopic(), exception);
+                ConsumerRecord<Object, Object> failedRecord = new ConsumerRecord<>(topicProperties.getMainTopic(), 0, 0L, key, user);
+                deadLetterPublishingRecoverer.accept(failedRecord, exception);
+                throw exception;
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
