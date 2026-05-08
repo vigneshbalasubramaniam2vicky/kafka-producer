@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: kafka-producer-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/
+      database: kafka-check
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
+app:
+  kafka:
+    main-topic: demo-topic
+    dlt-topic: demo-topic-dlt
+    retry-attempts: 10
+    retry-interval-ms: 5000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.example.producer: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
