@@ -6,13 +6,16 @@ spring:
       uri: mongodb://localhost:27017/
       database: kafka-check
   kafka:
-    bootstrap-servers: localhost:9092
     producer:
+      bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      retries: 10
       acks: all
       properties:
         enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        retry.backoff.ms: 5000
         spring.json.add.type.headers: false
 
 app:
